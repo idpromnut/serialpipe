@@ -24,7 +24,7 @@
 
 // Program Version
 #define FW_VERSION_MAJOR  1
-#define FW_VERSION_MINOR  0
+#define FW_VERSION_MINOR  1
 #define FW_VERSION_PATCH  0
 
 
@@ -202,7 +202,16 @@ void serialPipe() {
     }
     digitalWrite(LED_BUILTIN, status_led_state);
   }
-  
+
+  // Check if there is activity on the debug console (i.e. the user would like to switch to config mode for example
+  if (logger->read() == CONFIGURATION_KEY) {
+    logger->printf("Switching to configuration mode...\n");
+    Serial.swap();
+    Serial.begin(CONFIG_CONSOLE_BAUD_SERIAL);
+    configuration_mode = true;
+    return;
+  }
+
   //check if there are any new clients
   if (server.hasClient()) {
     //find free/disconnected spot
