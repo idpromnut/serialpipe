@@ -14,6 +14,15 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * 
+ * To install ESP8266 in Arduino IDE
+ * Start Arduino and open the Preferences window.
+ * Enter https://arduino.esp8266.com/stable/package_esp8266com_index.json 
+ * into the File>Preferences>Additional Boards Manager URLs field of the Arduino IDE. 
+ * You can add multiple URLs, separating them with commas.
+ * Open Boards Manager from Tools -> Board menu and install esp8266 platform 
+ * (and don't forget to select your ESP8266 board from Tools -> Board menu after installation).
+ * Once installed, select proper board, with Tools -> Boards -> ESP8266
  */
 #include <ESP8266WiFi.h>
 #include <FS.h>
@@ -153,6 +162,7 @@ void setupSerialPipe() {
   logger->printf("Serial baud: %d (8n1: %d KB/s)\n", serialpipe_config.uart.dut_baud_rate, serialpipe_config.uart.log_baud_rate * 8 / 10 / 1024);
   logger->printf("Serial receive buffer size: %d bytes\n", RXBUFFERSIZE);
 
+  WiFi.setOutputPower(0.0);
   WiFi.mode(WIFI_STA);
   WiFi.begin(serialpipe_config.wifi.ssid, serialpipe_config.wifi.psk);
   logger->print("\nConnecting to ");
