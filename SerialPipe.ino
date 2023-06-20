@@ -53,7 +53,7 @@
 // Configuration mode baud rate (this is non-configurable via the configuration console)
 #define CONFIG_CONSOLE_BAUD_SERIAL      115200
 // Milliseconds to wait for user input to switch to configuration mode before starting serial logger mode
-#define CONFIG_CONSOLE_ENTRY_DELAY_MS   1000
+#define CONFIG_CONSOLE_ENTRY_DELAY_MS   5000
 
 // LED blink rates
 #define STATUS_LED_ON_MS  100
@@ -153,6 +153,7 @@ void setupSerialPipe() {
   logger->printf("Serial baud: %d (8n1: %d KB/s)\n", serialpipe_config.uart.dut_baud_rate, serialpipe_config.uart.log_baud_rate * 8 / 10 / 1024);
   logger->printf("Serial receive buffer size: %d bytes\n", RXBUFFERSIZE);
 
+  WiFi.setOutputPower(0.0);
   WiFi.mode(WIFI_STA);
   WiFi.begin(serialpipe_config.wifi.ssid, serialpipe_config.wifi.psk);
   logger->print("\nConnecting to ");
