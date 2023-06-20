@@ -14,6 +14,24 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * 
+ * 
+ * INSTRUCTIONS
+ * To install ESP8266 in Arduino IDE
+ * Start Arduino and open the Preferences window.
+ * Enter https://arduino.esp8266.com/stable/package_esp8266com_index.json 
+ * into the File>Preferences>Additional Boards Manager URLs field of the Arduino IDE. 
+ * You can add multiple URLs, separating them with commas.
+ * Open Boards Manager from Tools -> Board menu and install esp8266 platform 
+ * (and don't forget to select your ESP8266 board from Tools -> Board menu after installation).
+ * Once installed, select proper board, with Tools -> Boards -> ESP8266
+ * 
+ * USAGE
+ * During runtime, the serial.swap() is used to switch the serial port to use
+ * GPIO15/D8(TX) and GPIO13/D7(RX) instead of the normal GPIO1(TX) and GPIO3(RX).
+ * This ensure that once bootup is done the USB-UART converter is disconnected and free
+ * UART for use for incoming/outgoing serialpipe connection
+ * 
  */
 #include <ESP8266WiFi.h>
 #include <FS.h>
@@ -24,7 +42,7 @@
 
 // Program Version
 #define FW_VERSION_MAJOR  1
-#define FW_VERSION_MINOR  1
+#define FW_VERSION_MINOR  2
 #define FW_VERSION_PATCH  0
 
 
@@ -47,6 +65,9 @@
 // Default port to listen for incoming TCP connections
 #define DEFAULT_LISTEN_PORT 23
 
+// Default Wifi TX power (from 0.0 to 20.5)
+#define DEFAULT_TX_POWER (12.0)
+
 // How many clients should be able to telnet to this ESP8266
 #define MAX_SRV_CLIENTS 2
 
@@ -66,6 +87,7 @@
 typedef struct wifi_settings_t {
   char ssid[32];
   char psk[64];
+  float tx_power;
   int listen_port;
 } wifi_settings_t;
 
@@ -153,9 +175,11 @@ void setupSerialPipe() {
   logger->printf("Serial baud: %d (8n1: %d KB/s)\n", serialpipe_config.uart.dut_baud_rate, serialpipe_config.uart.log_baud_rate * 8 / 10 / 1024);
   logger->printf("Serial receive buffer size: %d bytes\n", RXBUFFERSIZE);
 
-  WiFi.setOutputPower(0.0);
+  WiFi.setOutputPower(DEFAULT_TX_POWER);  
+  logger->printf("ESP8266 Version: ");
   WiFi.mode(WIFI_STA);
   WiFi.begin(serialpipe_config.wifi.ssid, serialpipe_config.wifi.psk);
+  logger->printf("\nTX Power set to %.1f", serialpipe_config.wifi.tx_power);
   logger->print("\nConnecting to ");
   logger->println(serialpipe_config.wifi.ssid);
   while (WiFi.status() != WL_CONNECTED) {
@@ -295,6 +319,7 @@ void configurationConsole() {
   String temp_num;
   int new_dut_baud;
   int new_log_baud;
+  float new_tx_power;
   bool user_confirm;
   digitalWrite(LED_BUILTIN,LOW);
 
@@ -323,17 +348,26 @@ void configurationConsole() {
   Serial.printf("\nEnter SSID: ");
   new_ssid.remove(0,new_ssid.length());
   console_read(new_ssid);
+  
   Serial.printf("\nEnter pre-shared key: ");
   new_psk.remove(0,new_psk.length());
   console_read(new_psk);
+  
+  Serial.printf("\nTX Power: ");
+  temp_num.remove(0,temp_num.length());
+  console_read(temp_num);
+  new_tx_power = atof(temp_num.c_str());
+  
   Serial.printf("\nListen port: ");
   temp_num.remove(0,temp_num.length());
   console_read(temp_num);
   new_listen_port = atoi(temp_num.c_str());
+  
   Serial.printf("\nDUT Baud Rate: ");
   temp_num.remove(0,temp_num.length());
   console_read(temp_num);
   new_dut_baud = atoi(temp_num.c_str());
+  
   Serial.printf("\nLog Baud Rate: ");
   temp_num.remove(0,temp_num.length());
   console_read(temp_num);
@@ -342,6 +376,7 @@ void configurationConsole() {
   Serial.printf("\n\n\nNew configuration:\n\n");
   Serial.printf("SSID:              [%s]\n", new_ssid.c_str());
   Serial.printf("Pre-Shared Key:    [%s]\n", new_psk.c_str());
+  Serial.printf("TX Power:          [%.1f]\n", new_tx_power);
   Serial.printf("Listen port:       [%d]\n", new_listen_port);
   Serial.printf("DUT baud rate:     [%d]\n", new_dut_baud);
   Serial.printf("Log baud rate:     [%d]\n", new_log_baud);
@@ -355,6 +390,7 @@ void configurationConsole() {
         memset(&serialpipe_config, 0, sizeof(serialpipe_config_t));
         strcpy(serialpipe_config.wifi.ssid, new_ssid.c_str());
         strcpy(serialpipe_config.wifi.psk, new_psk.c_str());
+        serialpipe_config.wifi.tx_power = new_tx_power;
         serialpipe_config.wifi.listen_port = new_listen_port;
         serialpipe_config.uart.dut_baud_rate = new_dut_baud;
         serialpipe_config.uart.log_baud_rate = new_log_baud;
@@ -425,6 +461,7 @@ void print_configuration() {
   Serial.printf("Wifi:\n");
   Serial.printf("  SSID:        %s\n", serialpipe_config.wifi.ssid);
   Serial.printf("  PSK:         %s\n", serialpipe_config.wifi.psk);
+  Serial.printf("  TX Power:    %.1f\n", serialpipe_config.wifi.tx_power);
   Serial.printf("  Listen port: %d\n", serialpipe_config.wifi.listen_port);
   Serial.printf("DUT Baud:      %d\n", serialpipe_config.uart.dut_baud_rate);
   Serial.printf("Log Baud:      %d\n", serialpipe_config.uart.log_baud_rate);
@@ -452,6 +489,7 @@ void set_default_config() {
     memset(&serialpipe_config, 0, sizeof(serialpipe_config_t));
     memcpy(serialpipe_config.wifi.ssid, DEFAULT_SSID, sizeof(DEFAULT_SSID));
     memcpy(serialpipe_config.wifi.psk, DEFAULT_PSK, sizeof(DEFAULT_PSK));
+    serialpipe_config.wifi.tx_power = DEFAULT_TX_POWER;
     serialpipe_config.wifi.listen_port = DEFAULT_LISTEN_PORT;
     serialpipe_config.uart.log_baud_rate = DEFAULT_BAUD_LOGGER;
     serialpipe_config.uart.dut_baud_rate = DEFAULT_BAUD_DUT;
