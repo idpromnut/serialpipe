@@ -74,7 +74,7 @@
 // Configuration mode baud rate (this is non-configurable via the configuration console)
 #define CONFIG_CONSOLE_BAUD_SERIAL      115200
 // Milliseconds to wait for user input to switch to configuration mode before starting serial logger mode
-#define CONFIG_CONSOLE_ENTRY_DELAY_MS   1000
+#define CONFIG_CONSOLE_ENTRY_DELAY_MS   5000
 
 // LED blink rates
 #define STATUS_LED_ON_MS  100
